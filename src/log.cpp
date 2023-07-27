@@ -315,7 +315,7 @@ namespace xie
         XX(l,LineFormatItem)*/
 #undef XX
     };
-    }
+  }
 
   std::string logFormatter::format(std::shared_ptr<Logger> logger, LogLevel::Level level, logEvent::ptr event)
   {
