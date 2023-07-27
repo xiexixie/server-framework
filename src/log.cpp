@@ -315,6 +315,25 @@ namespace xie
         XX(l,LineFormatItem)*/
 #undef XX
     };
+    for (auto &i : vec)
+    {
+      if (std::get<2>(i) == 0)
+      {
+        m_item.push_back(formatItem::ptr(new StringFormatItem(std::get<0>(i))));
+      }
+      else
+      {
+        auto it = s_format_items.find(std::get<0>(i));
+        if (it == s_format_items.end())
+        {
+          m_item.push_back(formatItem::ptr(new StringFormatItem("<<error_format %" + std::get<0>(i) + ">>")));
+        }
+        else
+        {
+          m_item.push_back(it->second(std::get<1>(i)));
+        }
+      }
+    }
   }
 
   std::string logFormatter::format(std::shared_ptr<Logger> logger, LogLevel::Level level, logEvent::ptr event)
