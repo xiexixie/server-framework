@@ -11,28 +11,29 @@
 
 namespace xie
 {
-
+  class Logger;
   class logEvent
   {
   public:
     typedef std::shared_ptr<logEvent> ptr;
-    logEvent();
+    logEvent(const char *file, int32_t line, uint32_t threadID, uint32_t fiberID, uint32_t elapse, uint64_t time);
     const char *getFile() const { return m_file; }
     int32_t getLine() const { return m_line; }
     uint32_t getThreadid() const { return m_threadId; }
     uint32_t getFiberID() const { return m_fiberId; }
     uint32_t getElapse() const { return m_elapse; }
     uint64_t getTime() const { return m_time; }
-    const std::string &getContent() const { return m_content; }
+    std::string getContent() const { return m_sscontent.str(); }
+    std::stringstream &getss() { return m_sscontent; }
 
   private:
-    const char *m_file = nullptr; // 文件名
-    int32_t m_line = 0;           // 行号
-    uint32_t m_threadId = 0;      // 线程ID
-    uint32_t m_fiberId = 0;       // 协程ID
-    uint32_t m_elapse = 0;        // 程序运行时间ms
-    uint64_t m_time;              // 时间戳
-    std::string m_content;        // 内容
+    const char *m_file = nullptr;  // 文件名
+    int32_t m_line = 0;            // 行号
+    uint32_t m_threadId = 0;       // 线程ID
+    uint32_t m_fiberId = 0;        // 协程ID
+    uint32_t m_elapse = 0;         // 程序运行时间ms
+    uint64_t m_time;               // 时间戳
+    std::stringstream m_sscontent; // 内容
   };
 
   class LogLevel
@@ -61,9 +62,9 @@ namespace xie
     {
     public:
       typedef std::shared_ptr<formatItem> ptr;
-      formatItem(const std::string &fmt = "") {}
+      // formatItem(const std::string &fmt = "") {}
       virtual ~formatItem() {}
-      virtual void format(std::shared_ptr<Logger> logger, std::ofstream &ofs, LogLevel::Level level, logEvent::ptr event) = 0;
+      virtual void format(std::shared_ptr<Logger> logger, std::ostream &ofs, LogLevel::Level level, logEvent::ptr event) = 0;
     };
 
     void init(); // 初始化日志格式
@@ -84,12 +85,12 @@ namespace xie
     logFormatter::ptr getFormat() const { return m_formater; }
 
   protected:
-    LogLevel::Level m_level;
+    LogLevel::Level m_level = LogLevel::DEBUG;
     logFormatter::ptr m_formater;
   };
 
   // 日志
-  class Logger
+  class Logger : public std::enable_shared_from_this<Logger>
   {
   public:
     typedef std::shared_ptr<Logger> ptr;
@@ -111,6 +112,7 @@ namespace xie
     std::string m_name;                     // 日志名称
     LogLevel::Level m_level;                // 日志级别
     std::list<logAppender::ptr> m_appender; // Appender集合
+    logFormatter::ptr m_formatter;
   };
 
   // 输出到控制台的appender
