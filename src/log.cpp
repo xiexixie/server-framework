@@ -32,8 +32,7 @@ namespace xie
     MessageFormatItem(const std::string &str = "") {}
     void format(std::shared_ptr<Logger> logger, std::ostream &ofs, LogLevel::Level level, logEvent::ptr event) override
     {
-      // ofs << event->getContent() ;
-      ofs << "test log";
+      ofs << event->getContent();
     }
   };
   class LevelFormatItem : public logFormatter::formatItem
@@ -151,6 +150,18 @@ namespace xie
   private:
     std::string m_str;
   };
+  class TabFormatItem : public logFormatter::formatItem
+  {
+  public:
+    TabFormatItem(const std::string &str) : m_str(str) {}
+    void format(std::shared_ptr<Logger> logger, std::ostream &ofs, LogLevel::Level level, logEvent::ptr event) override
+    {
+      ofs << "\t";
+    }
+
+  private:
+    std::string m_str;
+  };
 
   void Logger::addAppender(logAppender::ptr appender)
   {
@@ -175,7 +186,7 @@ namespace xie
 
   Logger::Logger(const std::string &name) : m_name(name), m_level(LogLevel::DEBUG)
   {
-    m_formatter.reset(new logFormatter("%d [%p] <%f:%l>   %m %n"));
+    m_formatter.reset(new logFormatter("%d%T%t%T%F%T[%p]%T[%c]%T%f:%l%T%m%n"));
   }
 
   void Logger::log(LogLevel::Level level, logEvent::ptr event)
@@ -264,6 +275,8 @@ namespace xie
       %d--时间戳
       %f--文件名
       %l--行号
+      %T--tab
+      %F--协程id
   */
   void logFormatter::init()
   {
@@ -328,7 +341,7 @@ namespace xie
       }
       else if (fmt_statue == 1)
       {
-        std::cout << "pattern error: " << m_pattern << " - " << m_pattern.substr(i) << std::endl;
+        // std::cout << "pattern error: " << m_pattern << " - " << m_pattern.substr(i) << std::endl;
         vec.push_back(std::make_tuple("<<error>>", fmt, 0));
       }
       else if (fmt_statue == 1)
@@ -362,7 +375,9 @@ namespace xie
         XX(n, NewLineFormatItem),
         XX(d, DataTimeFormatItem),
         XX(f, FileFormatItem),
-        XX(l, LineFormatItem)
+        XX(l, LineFormatItem),
+        XX(T, TabFormatItem),
+        XX(F, FiberIDFormatItem)
 #undef XX
     };
 
