@@ -1,10 +1,11 @@
 #include "log.h"
+#include <stdarg.h>
 #include <map>
 #include <functional>
 
 namespace xie
 {
-  logEvent::logEvent(const char *file, int32_t line, uint32_t threadID, uint32_t fiberID, uint32_t elapse, uint64_t time) : m_file(file), m_line(line), m_threadId(threadID), m_fiberId(fiberID), m_elapse(elapse), m_time(time) {}
+  logEvent::logEvent(LogLevel::Level level, std::shared_ptr<Logger> logger, const char *file, int32_t line, uint32_t threadID, uint32_t fiberID, uint32_t elapse, uint64_t time) : m_file(file), m_line(line), m_threadId(threadID), m_fiberId(fiberID), m_elapse(elapse), m_time(time), m_logger(logger), m_level(level) {}
   const char *LogLevel::toString(LogLevel::Level level)
   {
     switch (level)
@@ -24,6 +25,35 @@ namespace xie
       return "UNKNOW";
     }
     return "UNKNOW";
+  }
+  void logEvent::format(const char *fmt, ...)
+  {
+    va_list all;
+    va_start(all, fmt);
+    format(fmt, all);
+    va_end(all);
+  }
+  void logEvent::format(const char *fmt, va_list all)
+  {
+    char *buf = nullptr;
+    int len = vasprintf(&buf, fmt, all);
+    if (len != -1)
+    {
+      m_sscontent << std::string(buf, len);
+      free(buf);
+    }
+  }
+
+  LogEventWrap::LogEventWrap(logEvent::ptr e) : m_event(e)
+  {
+  }
+  LogEventWrap::~LogEventWrap()
+  {
+    m_event->getLogger()->log(m_event->getLevel(), m_event);
+  }
+  std::stringstream &LogEventWrap::getSS()
+  {
+    return m_event->getss();
   }
 
   class MessageFormatItem : public logFormatter::formatItem
@@ -222,7 +252,10 @@ namespace xie
     log(LogLevel::ERROR, event);
   }
 
-  FileLogAppender::FileLogAppender(const std::string &filename) : m_filename(filename) {}
+  FileLogAppender::FileLogAppender(const std::string &filename) : m_filename(filename)
+  {
+    reopen();
+  }
 
   bool FileLogAppender::reopen()
   {

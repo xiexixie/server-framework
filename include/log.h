@@ -8,34 +8,30 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <map>
+
+#define XIE_LOG_LEVEL(logger, level) \
+  if (logger->getLevel() <= level)   \
+  xie::LogEventWrap(xie::logEvent::ptr(new xie::logEvent(level, logger, __FILE__, __LINE__, xie::getThreadID(), xie::getFiberID(), 0, time(0)))).getSS()
+#define XIE_LOG_DEBUG(logger) XIE_LOG_LEVEL(logger, xie::LogLevel::DEBUG)
+#define XIE_LOG_INFO(logger) XIE_LOG_LEVEL(logger, xie::LogLevel::INFO)
+#define XIE_LOG_WARN(logger) XIE_LOG_LEVEL(logger, xie::LogLevel::WARN)
+#define XIE_LOG_ERROR(logger) XIE_LOG_LEVEL(logger, xie::LogLevel::ERROR)
+#define XIE_LOG_FATAL(logger) XIE_LOG_LEVEL(logger, xie::LogLevel::FATAL)
+
+#define XIE_LOG_FMT_LEVEL(logger, level, fmt, ...) \
+  if (logger->getLevel() <= level)                 \
+  xie::LogEventWrap(xie::logEvent::ptr(new xie::logEvent(level, logger, __FILE__, __LINE__, xie::getThreadID(), xie::getFiberID(), 0, time(0)))).getEvent()->format(fmt, __VA_ARGS__)
+#define XIE_LOG_FMT_DEBUG(logger, fmt, ...) XIE_LOG_FMT_LEVEL(logger, xie::LogLevel::DEBUG, fmt, __VA_ARGS__)
+#define XIE_LOG_FMT_INFO(logger, fmt, ...) XIE_LOG_FMT_LEVEL(logger, xie::LogLevel::INFO, fmt, __VA_ARGS__)
+#define XIE_LOG_FMT_WARN(logger, fmt, ...) XIE_LOG_FMT_LEVEL(logger, xie::LogLevel::WARN, fmt, __VA_ARGS__)
+#define XIE_LOG_FMT_ERROR(logger, fmt, ...) XIE_LOG_FMT_LEVEL(logger, xie::LogLevel::ERROR, fmt, __VA_ARGS__)
+#define XIE_LOG_FMT_FATAL(logger, fmt, ...) XIE_LOG_FMT_LEVEL(logger, xie::LogLevel::FATAL, fmt, __VA_ARGS__)
 
 namespace xie
 {
   class Logger;
-  class logEvent
-  {
-  public:
-    typedef std::shared_ptr<logEvent> ptr;
-    logEvent(const char *file, int32_t line, uint32_t threadID, uint32_t fiberID, uint32_t elapse, uint64_t time);
-    const char *getFile() const { return m_file; }
-    int32_t getLine() const { return m_line; }
-    uint32_t getThreadid() const { return m_threadId; }
-    uint32_t getFiberID() const { return m_fiberId; }
-    uint32_t getElapse() const { return m_elapse; }
-    uint64_t getTime() const { return m_time; }
-    std::string getContent() const { return m_sscontent.str(); }
-    std::stringstream &getss() { return m_sscontent; }
-
-  private:
-    const char *m_file = nullptr;  // 文件名
-    int32_t m_line = 0;            // 行号
-    uint32_t m_threadId = 0;       // 线程ID
-    uint32_t m_fiberId = 0;        // 协程ID
-    uint32_t m_elapse = 0;         // 程序运行时间ms
-    uint64_t m_time;               // 时间戳
-    std::stringstream m_sscontent; // 内容
-  };
-
+  // 日志级别
   class LogLevel
   {
   public:
@@ -48,6 +44,48 @@ namespace xie
       FATAL
     };
     static const char *toString(LogLevel::Level level);
+  };
+  class logEvent
+  {
+  public:
+    typedef std::shared_ptr<logEvent> ptr;
+    logEvent(LogLevel::Level level, std::shared_ptr<Logger> logger, const char *file, int32_t line, uint32_t threadID, uint32_t fiberID, uint32_t elapse, uint64_t time);
+    const char *getFile() const { return m_file; }
+    int32_t getLine() const { return m_line; }
+    uint32_t getThreadid() const { return m_threadId; }
+    uint32_t getFiberID() const { return m_fiberId; }
+    uint32_t getElapse() const { return m_elapse; }
+    uint64_t getTime() const { return m_time; }
+    std::string getContent() const { return m_sscontent.str(); }
+    std::stringstream &getss() { return m_sscontent; }
+    std::shared_ptr<Logger> getLogger() { return m_logger; }
+    LogLevel::Level getLevel() { return m_level; }
+    void format(const char *fmt, ...);
+    void format(const char *fmt, va_list all);
+
+  private:
+    const char *m_file = nullptr;  // 文件名
+    int32_t m_line = 0;            // 行号
+    uint32_t m_threadId = 0;       // 线程ID
+    uint32_t m_fiberId = 0;        // 协程ID
+    uint32_t m_elapse = 0;         // 程序运行时间ms
+    uint64_t m_time;               // 时间戳
+    std::stringstream m_sscontent; // 内容
+
+    std::shared_ptr<Logger> m_logger;
+    LogLevel::Level m_level;
+  };
+
+  class LogEventWrap
+  {
+  public:
+    LogEventWrap(logEvent::ptr e);
+    ~LogEventWrap();
+    std::stringstream &getSS();
+    logEvent::ptr getEvent() { return m_event; }
+
+  private:
+    logEvent::ptr m_event;
   };
 
   // 日志格式
@@ -83,6 +121,7 @@ namespace xie
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, logEvent::ptr event) = 0;
     void setFormat(logFormatter::ptr val) { m_formater = val; }
     logFormatter::ptr getFormat() const { return m_formater; }
+    void setLevel(LogLevel::Level levle) { m_level = levle; }
 
   protected:
     LogLevel::Level m_level = LogLevel::DEBUG;
@@ -134,5 +173,17 @@ namespace xie
   private:
     std::string m_filename;
     std::ofstream m_filestream;
+  };
+
+  class LogManager
+  {
+  public:
+    LogManager();
+    Logger::ptr getLogger(const std::string &name);
+    void init();
+
+  private:
+    std::map<std::string, Logger::ptr> m_logger;
+    Logger::ptr root;
   };
 }
