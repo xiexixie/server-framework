@@ -17,4 +17,6 @@ int main()
   XIE_LOG_DEBUG(logger) << "test logger debug";
   XIE_LOG_INFO(logger) << "test logger info";
   XIE_LOG_FMT_ERROR(logger, "test debugfmt %s", "aa");
+  auto l = xie::LogMgr::GetInstance()->getLogger("xx");
+  XIE_LOG_INFO(l) << "xxxxxx";
 }

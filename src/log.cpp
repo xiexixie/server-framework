@@ -436,4 +436,15 @@ namespace xie
     }
   }
 
+  LogManager::LogManager()
+  {
+    m_root.reset(new Logger);
+    m_root->addAppender(logAppender::ptr(new StdoutLogAppender));
+  }
+  Logger::ptr LogManager::getLogger(const std::string &name)
+  {
+    auto it = m_loggers.find(name);
+    return it == m_loggers.end() ? m_root : it->second;
+  }
+  void LogManager::init() {}
 }

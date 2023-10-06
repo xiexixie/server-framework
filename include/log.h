@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iostream>
 #include <map>
+#include "singleton.h"
 
 #define XIE_LOG_LEVEL(logger, level) \
   if (logger->getLevel() <= level)   \
@@ -183,7 +184,8 @@ namespace xie
     void init();
 
   private:
-    std::map<std::string, Logger::ptr> m_logger;
-    Logger::ptr root;
+    std::map<std::string, Logger::ptr> m_loggers;
+    Logger::ptr m_root;
   };
+  typedef Singleton<LogManager> LogMgr;
 }
