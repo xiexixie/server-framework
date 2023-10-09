@@ -3,3 +3,4 @@ build
 test/try
 test/try.cpp
 bin/log.txt
+test/main.cpp

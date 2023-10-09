@@ -10,6 +10,7 @@
 #include <iostream>
 #include <map>
 #include "singleton.h"
+#include "util.h"
 
 #define XIE_LOG_LEVEL(logger, level) \
   if (logger->getLevel() <= level)   \
@@ -28,6 +29,8 @@
 #define XIE_LOG_FMT_WARN(logger, fmt, ...) XIE_LOG_FMT_LEVEL(logger, xie::LogLevel::WARN, fmt, __VA_ARGS__)
 #define XIE_LOG_FMT_ERROR(logger, fmt, ...) XIE_LOG_FMT_LEVEL(logger, xie::LogLevel::ERROR, fmt, __VA_ARGS__)
 #define XIE_LOG_FMT_FATAL(logger, fmt, ...) XIE_LOG_FMT_LEVEL(logger, xie::LogLevel::FATAL, fmt, __VA_ARGS__)
+
+#define XIE_LOG_ROOT() xie::LogMgr::GetInstance()->getRoot()
 
 namespace xie
 {
@@ -182,6 +185,7 @@ namespace xie
     LogManager();
     Logger::ptr getLogger(const std::string &name);
     void init();
+    Logger::ptr getRoot() const { return m_root; }
 
   private:
     std::map<std::string, Logger::ptr> m_loggers;
